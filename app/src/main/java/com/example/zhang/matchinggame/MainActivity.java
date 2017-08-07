@@ -1,5 +1,6 @@
 package com.example.zhang.matchinggame;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.annotation.NonNull;
@@ -7,6 +8,8 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -17,6 +20,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private int size;
+    private TimeTextView textViewTime;
     private TableLayout tableLayout;
     private ChangeSizeDialog changeSizeDialog;
     @Nullable
@@ -25,91 +29,162 @@ public class MainActivity extends AppCompatActivity {
     private SquareButton second;
     private CountDownTimer timer;
     private List<SquareButton> buttonList;
-
     private int countDown = 0;
+
+    View.OnClickListener clickListener_iconButton = new View.OnClickListener() {
+        @Override
+        public void onClick(@NonNull View v) {
+            if (((SquareButton) v).isOpened())
+                return;
+            if (countDown == 0) {
+                if (timer != null) {
+                    timer.cancel();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (first != null)
+                                first.changeState();
+                            if (second != null)
+                                second.changeState();
+                            first = second = null;
+                        }
+                    });
+                }
+                countDown++;
+                first = (SquareButton) v;
+                first.changeState();
+            } else {
+                countDown = 0;
+                second = (SquareButton) v;
+                second.changeState();
+
+                // Don't match
+                if (!second.getText().equals(first.getText())) {
+                    timer = new CountDownTimer(3000, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                            Log.w("Timer", "Timer is running");
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    first.changeState();
+                                    second.changeState();
+                                    first = second = null;
+                                }
+                            });
+                        }
+                    }.start();
+                } else {
+                    first.setMatched();
+                    second.setMatched();
+                    first = second = null;
+                    for (SquareButton button : buttonList) {
+                        if (button.isNotMatched())
+                            return;
+                    }
+                    textViewTime.Stop();
+                    AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
+                    builder.setMessage("Congratulations! All matched!");
+                    builder.show();
+                }
+            }
+        }
+    };
+
+    /**
+     * Initialize the contents of the Activity's standard options menu.  You
+     * should place your menu items in to <var>menu</var>.
+     * <p>
+     * <p>This is only called once, the first time the options menu is
+     * displayed.  To update the menu every time it is displayed, see
+     * {@link #onPrepareOptionsMenu}.
+     * <p>
+     * <p>The default implementation populates the menu with standard system
+     * menu items.  These are placed in the {@link Menu#CATEGORY_SYSTEM} group so that
+     * they will be correctly ordered with application-defined menu items.
+     * Deriving classes should always call through to the base implementation.
+     * <p>
+     * <p>You can safely hold on to <var>menu</var> (and any items created
+     * from it), making modifications to it as desired, until the next
+     * time onCreateOptionsMenu() is called.
+     * <p>
+     * <p>When you add items to the menu, you can implement the Activity's
+     * {@link #onOptionsItemSelected} method to handle them there.
+     *
+     * @param menu The options menu in which you place your items.
+     * @return You must return true for the menu to be displayed;
+     * if you return false it will not be shown.
+     * @see #onPrepareOptionsMenu
+     * @see #onOptionsItemSelected
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.topmenubar, menu);
+        return true;
+    }
+
+    /**
+     * This hook is called whenever an item in your options menu is selected.
+     * The default implementation simply returns false to have the normal
+     * processing happen (calling the item's Runnable or sending a message to
+     * its Handler as appropriate).  You can use this method for any items
+     * for which you would like to do processing without those other
+     * facilities.
+     * <p>
+     * <p>Derived classes should call through to the base class for it to
+     * perform the default menu handling.</p>
+     *
+     * @param item The menu item that was selected.
+     * @return boolean Return false to allow normal menu processing to
+     * proceed, true to consume it here.
+     * @see #onCreateOptionsMenu
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.refreshItem:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("重新开始游戏").setMessage("确认重新开始？当前进度将丢失！").setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        textViewTime.Stop();
+                        changeSizeDialog.show(getFragmentManager(),"");
+                    }
+                }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                    }
+                }).show();
+        }
+        return true;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         tableLayout = (TableLayout) findViewById(R.id.tableLayout_pg);
+        textViewTime = (TimeTextView) findViewById(R.id.textViewTime);
+        textViewTime.setActivity(this);
 
         changeSizeDialog = new ChangeSizeDialog();
         changeSizeDialog.setOutSide(this);
         changeSizeDialog.show(getFragmentManager(), "");
+
     }
 
     public void ChangeSize() {
+        tableLayout.removeAllViewsInLayout();
+
         buttonList = new ArrayList<>();
 
         size = changeSizeDialog.getSize();
 
-        View.OnClickListener clickListener_iconButton = new View.OnClickListener() {
-            @Override
-            public void onClick(@NonNull View v) {
-                if (((SquareButton) v).isOpened())
-                    return;
-                if (countDown == 0) {
-                    if (timer != null) {
-                        timer.cancel();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (first != null)
-                                    first.changeState();
-                                if (second != null)
-                                    second.changeState();
-                                first = second = null;
-                            }
-                        });
-                    }
-                    countDown++;
-                    first = (SquareButton) v;
-                    first.changeState();
-                } else {
-                    countDown = 0;
-                    second = (SquareButton) v;
-                    second.changeState();
-
-                    // Don't match
-                    if (!second.getText().equals(first.getText())) {
-                        timer = new CountDownTimer(3000, 1000) {
-                            @Override
-                            public void onTick(long millisUntilFinished) {
-                                Log.w("Timer", "Timer is running");
-                            }
-
-                            @Override
-                            public void onFinish() {
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        first.changeState();
-                                        second.changeState();
-                                        first = second = null;
-                                    }
-                                });
-                            }
-                        }.start();
-                    } else {
-                        first.setMatched();
-                        second.setMatched();
-                        first = second = null;
-                        for (SquareButton button : buttonList) {
-                            if (button.isNotMatched())
-                                return;
-                        }
-                        AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
-                        builder.setMessage("Congratulations! All matched!");
-                        builder.show();
-                    }
-                }
-            }
-        };
-
         IconAssigner.getInstance().setNum(size * size).ResetAll();
-
-        // Set button layout
 
         for (int i = 0; i < size; i++) {
             TableRow row = new TableRow(this);
@@ -123,5 +198,6 @@ public class MainActivity extends AppCompatActivity {
             row.setDividerPadding(10);
             tableLayout.addView(row);
         }
+        textViewTime.Start();
     }
 }
