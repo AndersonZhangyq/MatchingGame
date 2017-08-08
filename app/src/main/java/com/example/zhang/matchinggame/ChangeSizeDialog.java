@@ -30,6 +30,7 @@ public class ChangeSizeDialog extends DialogFragment {
         LayoutInflater layoutInflater = getActivity().getLayoutInflater();
         final View view = layoutInflater.inflate(R.layout.dialog_change_size, null);
         RadioGroup size_group = (RadioGroup) view.findViewById(R.id.sizeGroup);
+        setCancelable(false);
 
         size_group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override

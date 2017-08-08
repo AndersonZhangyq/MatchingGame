@@ -156,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
                 textViewTime.Pause();
                 isStopped = true;
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setCancelable(false);
                 builder.setTitle("重新开始游戏").setMessage("确认重新开始？当前进度将丢失！").setPositiveButton("确认", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
