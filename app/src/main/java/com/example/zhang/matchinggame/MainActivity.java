@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private CountDownTimer timer;
     private List<SquareButton> buttonList;
     private int countDown = 0;
-    private boolean isStopped = false;
+    private boolean isStopped = false, isFinished = false;
 
     View.OnClickListener clickListener_iconButton = new View.OnClickListener() {
         @Override
@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
                             return;
                     }
                     textViewTime.Stop();
+                    isFinished = true;
                     AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
                     builder.setMessage("Congratulations! All matched!");
                     builder.show();
@@ -163,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
                         ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.INVISIBLE);
                         textViewTime.Stop();
                         changeSizeDialog.show(getFragmentManager(), "");
+                        isStopped = false;
                         noStop = false;
                     }
                 }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -176,6 +178,8 @@ public class MainActivity extends AppCompatActivity {
                 }).show();
                 break;
             case R.id.pause:
+                if (isFinished)
+                    break;
                 ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.VISIBLE);
                 textViewTime.Pause();
                 isStopped = true;
@@ -228,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void ChangeSize() {
+        isFinished = false;
         tableLayout.removeAllViewsInLayout();
 
         buttonList = new ArrayList<>();
