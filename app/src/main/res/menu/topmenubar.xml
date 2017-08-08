@@ -3,6 +3,11 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/pause"
+        android:icon="@android:drawable/ic_media_pause"
+        android:title="暂停"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/refreshItem"
         android:icon="@mipmap/ic_refresh_white_24dp"
         android:title="重新开始"

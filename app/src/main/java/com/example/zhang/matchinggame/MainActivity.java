@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 
@@ -19,10 +21,10 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private int size;
     private TimeTextView textViewTime;
     private TableLayout tableLayout;
     private ChangeSizeDialog changeSizeDialog;
+    private boolean noStop = false;
     @Nullable
     private SquareButton first;
     @Nullable
@@ -30,11 +32,12 @@ public class MainActivity extends AppCompatActivity {
     private CountDownTimer timer;
     private List<SquareButton> buttonList;
     private int countDown = 0;
+    private boolean isStopped = false;
 
     View.OnClickListener clickListener_iconButton = new View.OnClickListener() {
         @Override
         public void onClick(@NonNull View v) {
-            if (((SquareButton) v).isOpened())
+            if (isStopped || ((SquareButton) v).isOpened())
                 return;
             if (countDown == 0) {
                 if (timer != null) {
@@ -94,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private Button button_resume;
 
     /**
      * Initialize the contents of the Activity's standard options menu.  You
@@ -147,18 +151,34 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.refreshItem:
+                noStop = true;
+                ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.VISIBLE);
+                textViewTime.Pause();
+                isStopped = true;
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle("重新开始游戏").setMessage("确认重新开始？当前进度将丢失！").setPositiveButton("确认", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.INVISIBLE);
                         textViewTime.Stop();
-                        changeSizeDialog.show(getFragmentManager(),"");
+                        changeSizeDialog.show(getFragmentManager(), "");
+                        noStop = false;
                     }
                 }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.INVISIBLE);
+                        textViewTime.Resume();
+                        isStopped = false;
+                        noStop = false;
                     }
                 }).show();
+                break;
+            case R.id.pause:
+                ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.VISIBLE);
+                textViewTime.Pause();
+                isStopped = true;
+                break;
         }
         return true;
     }
@@ -175,6 +195,35 @@ public class MainActivity extends AppCompatActivity {
         changeSizeDialog.setOutSide(this);
         changeSizeDialog.show(getFragmentManager(), "");
 
+        button_resume = (Button) findViewById(R.id.button_resume);
+        button_resume.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.INVISIBLE);
+                        textViewTime.Resume();
+                        isStopped = false;
+                    }
+                });
+
+            }
+        });
+    }
+
+    /**
+     * Dispatch onPause() to fragments.
+     */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.w("State", "onStop");
+        if (noStop)
+            return;
+        isStopped = true;
+        ((RelativeLayout) findViewById(R.id.layout_cover)).setVisibility(View.VISIBLE);
+        textViewTime.Pause();
     }
 
     public void ChangeSize() {
@@ -182,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
 
         buttonList = new ArrayList<>();
 
-        size = changeSizeDialog.getSize();
+        int size = changeSizeDialog.getSize();
 
         IconAssigner.getInstance().setNum(size * size).ResetAll();
 
